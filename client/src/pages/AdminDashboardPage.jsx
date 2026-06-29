@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import LoadingOverlay from '../components/LoadingOverlay.jsx';
+import LessonForm from '../components/lessons/LessonForm.jsx';
 import PaginationControls from '../components/teaching-plans/PaginationControls.jsx';
 import TeachingPlanForm from '../components/teaching-plans/TeachingPlanForm.jsx';
 import TeachingPlanTable from '../components/teaching-plans/TeachingPlanTable.jsx';
 import TeachingPlanToolbar from '../components/teaching-plans/TeachingPlanToolbar.jsx';
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx';
 import Modal from '../components/ui/Modal.jsx';
+import { useLessonStore } from '../stores/useLessonStore.js';
 import { useTeachingPlanStore } from '../stores/useTeachingPlanStore.js';
 
 const initialQuery = {
@@ -19,19 +21,35 @@ const initialQuery = {
 function AdminDashboardPage() {
   const teachingPlans = useTeachingPlanStore((state) => state.teachingPlans);
   const pagination = useTeachingPlanStore((state) => state.pagination);
-  const isLoading = useTeachingPlanStore((state) => state.isLoading);
-  const error = useTeachingPlanStore((state) => state.error);
-  const validationErrors = useTeachingPlanStore((state) => state.validationErrors);
+  const teachingPlansLoading = useTeachingPlanStore((state) => state.isLoading);
+  const teachingPlanError = useTeachingPlanStore((state) => state.error);
+  const teachingPlanValidationErrors = useTeachingPlanStore((state) => state.validationErrors);
   const fetchTeachingPlans = useTeachingPlanStore((state) => state.fetchTeachingPlans);
   const createTeachingPlan = useTeachingPlanStore((state) => state.createTeachingPlan);
   const updateTeachingPlan = useTeachingPlanStore((state) => state.updateTeachingPlan);
   const deleteTeachingPlan = useTeachingPlanStore((state) => state.deleteTeachingPlan);
-  const clearError = useTeachingPlanStore((state) => state.clearError);
+  const clearTeachingPlanError = useTeachingPlanStore((state) => state.clearError);
+  const lessons = useLessonStore((state) => state.lessons);
+  const lessonsLoading = useLessonStore((state) => state.isLoading);
+  const lessonError = useLessonStore((state) => state.error);
+  const lessonValidationErrors = useLessonStore((state) => state.validationErrors);
+  const fetchLessons = useLessonStore((state) => state.fetchLessons);
+  const createLesson = useLessonStore((state) => state.createLesson);
+  const updateLesson = useLessonStore((state) => state.updateLesson);
+  const deleteLesson = useLessonStore((state) => state.deleteLesson);
+  const clearLessonError = useLessonStore((state) => state.clearError);
   const [filters, setFilters] = useState(initialQuery);
   const [query, setQuery] = useState(initialQuery);
   const [formTeachingPlan, setFormTeachingPlan] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [teachingPlanToDelete, setTeachingPlanToDelete] = useState(null);
+  const [expandedTeachingPlanId, setExpandedTeachingPlanId] = useState(null);
+  const [lessonTeachingPlan, setLessonTeachingPlan] = useState(null);
+  const [formLesson, setFormLesson] = useState(null);
+  const [isLessonFormOpen, setIsLessonFormOpen] = useState(false);
+  const [lessonToDelete, setLessonToDelete] = useState(null);
+  const isLoading = teachingPlansLoading || lessonsLoading;
+  const error = teachingPlanError || lessonError;
 
   useEffect(() => {
     fetchTeachingPlans(query).catch(() => {
@@ -40,19 +58,19 @@ function AdminDashboardPage() {
   }, [fetchTeachingPlans, query]);
 
   function openCreateModal() {
-    clearError();
+    clearTeachingPlanError();
     setFormTeachingPlan(null);
     setIsFormOpen(true);
   }
 
   function openEditModal(teachingPlan) {
-    clearError();
+    clearTeachingPlanError();
     setFormTeachingPlan(teachingPlan);
     setIsFormOpen(true);
   }
 
   function closeFormModal() {
-    clearError();
+    clearTeachingPlanError();
     setIsFormOpen(false);
     setFormTeachingPlan(null);
   }
@@ -66,6 +84,67 @@ function AdminDashboardPage() {
 
     closeFormModal();
     await fetchTeachingPlans(query);
+  }
+
+  function lessonQueryForPlan(teachingPlanId) {
+    return {
+      teaching_plan_id: teachingPlanId,
+      sort_by: 'starts_at',
+      sort_direction: 'asc',
+      per_page: 50,
+    };
+  }
+
+  async function refreshLessons(teachingPlanId = expandedTeachingPlanId) {
+    if (!teachingPlanId) {
+      return;
+    }
+
+    await fetchLessons(lessonQueryForPlan(teachingPlanId));
+  }
+
+  async function toggleLessons(teachingPlan) {
+    clearLessonError();
+
+    if (expandedTeachingPlanId === teachingPlan.id) {
+      setExpandedTeachingPlanId(null);
+      return;
+    }
+
+    setExpandedTeachingPlanId(teachingPlan.id);
+    await fetchLessons(lessonQueryForPlan(teachingPlan.id));
+  }
+
+  function openCreateLessonModal(teachingPlan) {
+    clearLessonError();
+    setLessonTeachingPlan(teachingPlan);
+    setFormLesson(null);
+    setIsLessonFormOpen(true);
+  }
+
+  function openEditLessonModal(teachingPlan, lesson) {
+    clearLessonError();
+    setLessonTeachingPlan(teachingPlan);
+    setFormLesson(lesson);
+    setIsLessonFormOpen(true);
+  }
+
+  function closeLessonFormModal() {
+    clearLessonError();
+    setIsLessonFormOpen(false);
+    setLessonTeachingPlan(null);
+    setFormLesson(null);
+  }
+
+  async function handleLessonFormSubmit(payload) {
+    if (formLesson) {
+      await updateLesson(formLesson.id, payload);
+    } else {
+      await createLesson(payload);
+    }
+
+    closeLessonFormModal();
+    await refreshLessons(payload.teaching_plan_id);
   }
 
   function handleSearch() {
@@ -90,6 +169,16 @@ function AdminDashboardPage() {
     await deleteTeachingPlan(teachingPlanToDelete.id);
     setTeachingPlanToDelete(null);
     await fetchTeachingPlans(query);
+  }
+
+  async function confirmDeleteLesson() {
+    if (!lessonToDelete) {
+      return;
+    }
+
+    await deleteLesson(lessonToDelete.id);
+    setLessonToDelete(null);
+    await refreshLessons();
   }
 
   return (
@@ -121,8 +210,15 @@ function AdminDashboardPage() {
 
       <TeachingPlanTable
         teachingPlans={teachingPlans}
+        expandedTeachingPlanId={expandedTeachingPlanId}
+        lessons={lessons}
+        lessonsLoading={lessonsLoading}
         onEdit={openEditModal}
         onDelete={setTeachingPlanToDelete}
+        onToggleLessons={toggleLessons}
+        onCreateLesson={openCreateLessonModal}
+        onEditLesson={openEditLessonModal}
+        onDeleteLesson={setLessonToDelete}
       />
 
       <PaginationControls pagination={pagination} onPageChange={handlePageChange} />
@@ -135,11 +231,29 @@ function AdminDashboardPage() {
         <TeachingPlanForm
           key={formTeachingPlan?.id ?? 'create'}
           teachingPlan={formTeachingPlan}
-          validationErrors={validationErrors}
-          isLoading={isLoading}
+          validationErrors={teachingPlanValidationErrors}
+          isLoading={teachingPlansLoading}
           onCancel={closeFormModal}
           onSubmit={handleFormSubmit}
         />
+      </Modal>
+
+      <Modal
+        isOpen={isLessonFormOpen}
+        onClose={closeLessonFormModal}
+        title={formLesson ? 'Edit lesson' : 'Create lesson'}
+      >
+        {lessonTeachingPlan && (
+          <LessonForm
+            key={formLesson?.id ?? `create-${lessonTeachingPlan.id}`}
+            lesson={formLesson}
+            teachingPlan={lessonTeachingPlan}
+            validationErrors={lessonValidationErrors}
+            isLoading={lessonsLoading}
+            onCancel={closeLessonFormModal}
+            onSubmit={handleLessonFormSubmit}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog
@@ -150,6 +264,16 @@ function AdminDashboardPage() {
         confirmLabel="Delete"
         onCancel={() => setTeachingPlanToDelete(null)}
         onConfirm={confirmDeleteTeachingPlan}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(lessonToDelete)}
+        isLoading={lessonsLoading}
+        title="Delete lesson?"
+        message={`Are you sure you want to delete "${lessonToDelete?.title}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onCancel={() => setLessonToDelete(null)}
+        onConfirm={confirmDeleteLesson}
       />
     </section>
   );
