@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Lesson;
 use App\Models\TeachingPlan;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class LessonSeeder extends Seeder
