@@ -7,6 +7,7 @@ import {
   lessonTimeRange,
   weekDays,
 } from '../../lib/calendar.js';
+import { downloadLessonIcs } from '../../lib/ics.js';
 
 function attendanceButtonClass(status, targetStatus) {
   const isActive = status === targetStatus;
@@ -136,6 +137,13 @@ function LessonCalendarCard({ currentUserId, lesson, onAttendanceChange }) {
       <p className={['mt-1', mutedClass].join(' ')}>{lessonTimeRange(lesson)}</p>
       <p className="mt-1 text-slate-500">{lesson.teaching_plan?.title}</p>
       <p className={['mt-2 font-semibold', mutedClass].join(' ')}>Status: {status}</p>
+      <button
+        className="mt-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+        type="button"
+        onClick={() => downloadLessonIcs(lesson)}
+      >
+        Export .ics
+      </button>
 
       {canMarkAttendance ? (
         <div className="mt-2 flex flex-wrap gap-2">
