@@ -19,7 +19,11 @@ function attendanceButtonClass(status, targetStatus) {
   ].join(' ');
 }
 
-function lessonCardClass(status) {
+function lessonCardClass(status, canMarkAttendance) {
+  if (!canMarkAttendance) {
+    return 'border-blue-100 bg-blue-50 text-blue-950';
+  }
+
   if (status === 'present') {
     return 'border-green-200 bg-green-50 text-green-950';
   }
@@ -28,10 +32,14 @@ function lessonCardClass(status) {
     return 'border-red-200 bg-red-50 text-red-950';
   }
 
-  return 'border-blue-100 bg-blue-50 text-blue-950';
+  return 'border-yellow-200 bg-yellow-50 text-yellow-950';
 }
 
-function mutedTextClass(status) {
+function mutedTextClass(status, canMarkAttendance) {
+  if (!canMarkAttendance) {
+    return 'text-blue-700';
+  }
+
   if (status === 'present') {
     return 'text-green-700';
   }
@@ -40,7 +48,7 @@ function mutedTextClass(status) {
     return 'text-red-700';
   }
 
-  return 'text-blue-700';
+  return 'text-yellow-700';
 }
 
 function MonthCalendar({ currentMonth, currentUserId, lessons, onAttendanceChange }) {
@@ -119,8 +127,8 @@ function LessonCalendarCard({ currentUserId, lesson, onAttendanceChange }) {
   const attendance = attendanceForUser(lesson, currentUserId);
   const canMarkAttendance = isTodayOrPast(lesson.starts_at);
   const status = attendance?.status ?? 'assigned';
-  const cardToneClass = lessonCardClass(status);
-  const mutedClass = mutedTextClass(status);
+  const cardToneClass = lessonCardClass(status, canMarkAttendance);
+  const mutedClass = mutedTextClass(status, canMarkAttendance);
 
   return (
     <article className={['rounded-lg border p-2 text-xs', cardToneClass].join(' ')}>
@@ -129,7 +137,7 @@ function LessonCalendarCard({ currentUserId, lesson, onAttendanceChange }) {
       <p className="mt-1 text-slate-500">{lesson.teaching_plan?.title}</p>
       <p className={['mt-2 font-semibold', mutedClass].join(' ')}>Status: {status}</p>
 
-      {canMarkAttendance && onAttendanceChange && (
+      {canMarkAttendance ? (
         <div className="mt-2 flex flex-wrap gap-2">
           <button
             className={attendanceButtonClass(status, 'present')}
@@ -146,6 +154,10 @@ function LessonCalendarCard({ currentUserId, lesson, onAttendanceChange }) {
             Absent
           </button>
         </div>
+      ) : (
+        <p className="mt-2 rounded-md bg-white px-2 py-1 text-slate-500">
+          Attendance is available on the lesson date.
+        </p>
       )}
     </article>
   );
