@@ -13,6 +13,7 @@ function DashboardPage() {
   const lessonsLoading = useLessonStore((state) => state.isLoading);
   const lessonError = useLessonStore((state) => state.error);
   const fetchLessons = useLessonStore((state) => state.fetchLessons);
+  const updateAttendance = useLessonStore((state) => state.updateAttendance);
   const teachingPlans = useTeachingPlanStore((state) => state.teachingPlans);
   const teachingPlansLoading = useTeachingPlanStore((state) => state.isLoading);
   const teachingPlanError = useTeachingPlanStore((state) => state.error);
@@ -25,6 +26,10 @@ function DashboardPage() {
   const [selectedTeachingPlanId, setSelectedTeachingPlanId] = useState('');
   const isLoading = lessonsLoading || teachingPlansLoading;
   const error = lessonError || teachingPlanError;
+
+  async function handleAttendanceChange(lessonId, status) {
+    await updateAttendance(lessonId, status);
+  }
 
   useEffect(() => {
     fetchTeachingPlans({
@@ -74,7 +79,12 @@ function DashboardPage() {
         onNextMonth={() => setCurrentMonth((month) => addMonths(month, 1))}
       />
 
-      <MonthCalendar currentMonth={currentMonth} currentUserId={user?.id} lessons={lessons} />
+      <MonthCalendar
+        currentMonth={currentMonth}
+        currentUserId={user?.id}
+        lessons={lessons}
+        onAttendanceChange={handleAttendanceChange}
+      />
     </section>
   );
 }
