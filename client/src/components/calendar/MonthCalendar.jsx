@@ -3,9 +3,21 @@ import {
   calendarDays,
   dateKey,
   groupLessonsByDate,
+  isTodayOrPast,
   lessonTimeRange,
   weekDays,
 } from '../../lib/calendar.js';
+
+function attendanceButtonClass(status, targetStatus) {
+  const isActive = status === targetStatus;
+  const activeClass =
+    targetStatus === 'present' ? 'bg-green-600 text-white' : 'bg-red-600 text-white';
+
+  return [
+    'rounded-md px-2 py-1 text-xs font-semibold transition',
+    isActive ? activeClass : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100',
+  ].join(' ');
+}
 
 function lessonCardClass(status) {
   if (status === 'present') {
@@ -31,7 +43,7 @@ function mutedTextClass(status) {
   return 'text-blue-700';
 }
 
-function MonthCalendar({ currentMonth, currentUserId, lessons }) {
+function MonthCalendar({ currentMonth, currentUserId, lessons, onAttendanceChange }) {
   const days = calendarDays(currentMonth);
   const lessonsByDate = groupLessonsByDate(lessons);
   const todayKey = dateKey(new Date());
@@ -89,6 +101,7 @@ function MonthCalendar({ currentMonth, currentUserId, lessons }) {
                         key={lesson.id}
                         lesson={lesson}
                         currentUserId={currentUserId}
+                        onAttendanceChange={onAttendanceChange}
                       />
                     ))}
                   </div>
@@ -102,8 +115,9 @@ function MonthCalendar({ currentMonth, currentUserId, lessons }) {
   );
 }
 
-function LessonCalendarCard({ currentUserId, lesson }) {
+function LessonCalendarCard({ currentUserId, lesson, onAttendanceChange }) {
   const attendance = attendanceForUser(lesson, currentUserId);
+  const canMarkAttendance = isTodayOrPast(lesson.starts_at);
   const status = attendance?.status ?? 'assigned';
   const cardToneClass = lessonCardClass(status);
   const mutedClass = mutedTextClass(status);
@@ -114,6 +128,25 @@ function LessonCalendarCard({ currentUserId, lesson }) {
       <p className={['mt-1', mutedClass].join(' ')}>{lessonTimeRange(lesson)}</p>
       <p className="mt-1 text-slate-500">{lesson.teaching_plan?.title}</p>
       <p className={['mt-2 font-semibold', mutedClass].join(' ')}>Status: {status}</p>
+
+      {canMarkAttendance && onAttendanceChange && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            className={attendanceButtonClass(status, 'present')}
+            type="button"
+            onClick={() => onAttendanceChange(lesson.id, 'present')}
+          >
+            Present
+          </button>
+          <button
+            className={attendanceButtonClass(status, 'absent')}
+            type="button"
+            onClick={() => onAttendanceChange(lesson.id, 'absent')}
+          >
+            Absent
+          </button>
+        </div>
+      )}
     </article>
   );
 }
