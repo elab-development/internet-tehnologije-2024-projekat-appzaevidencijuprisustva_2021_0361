@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import LoadingOverlay from '../components/LoadingOverlay.jsx';
+import BarChart from '../components/statistics/BarChart.jsx';
+import DonutChart from '../components/statistics/DonutChart.jsx';
 import SummaryCard from '../components/statistics/SummaryCard.jsx';
 import { buildStatistics, fetchStatisticsData } from '../lib/statistics.js';
 
@@ -14,6 +16,23 @@ function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const statistics = useMemo(() => buildStatistics(data), [data]);
+  const attendanceItems = [
+    {
+      label: 'Present',
+      value: statistics.attendance.present,
+      color: '#16a34a',
+    },
+    {
+      label: 'Absent',
+      value: statistics.attendance.absent,
+      color: '#dc2626',
+    },
+    {
+      label: 'Pending',
+      value: statistics.attendance.pending,
+      color: '#ca8a04',
+    },
+  ];
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -90,6 +109,13 @@ function StatisticsPage() {
           value={`${statistics.summary.attendanceRate}%`}
         />
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <DonutChart items={attendanceItems} title="Attendance status" />
+        <BarChart data={statistics.lessonsByTeachingPlan} title="Lessons by teaching plan" />
+      </div>
+
+      <BarChart data={statistics.lessonsByMonth} title="Lessons by month" />
     </section>
   );
 }
