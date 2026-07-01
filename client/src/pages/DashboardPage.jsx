@@ -3,6 +3,7 @@ import LoadingOverlay from '../components/LoadingOverlay.jsx';
 import CalendarControls from '../components/calendar/CalendarControls.jsx';
 import MonthCalendar from '../components/calendar/MonthCalendar.jsx';
 import { addMonths, apiDateTime, monthRange } from '../lib/calendar.js';
+import { fetchPublicHolidays } from '../lib/publicHolidays.js';
 import { useAuthStore } from '../stores/useAuthStore.js';
 import { useLessonStore } from '../stores/useLessonStore.js';
 import { useTeachingPlanStore } from '../stores/useTeachingPlanStore.js';
@@ -24,7 +25,10 @@ function DashboardPage() {
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const [selectedTeachingPlanId, setSelectedTeachingPlanId] = useState('');
-  const isLoading = lessonsLoading || teachingPlansLoading;
+  const [publicHolidays, setPublicHolidays] = useState([]);
+  const [holidaysLoading, setHolidaysLoading] = useState(false);
+  const [holidayError, setHolidayError] = useState(null);
+  const isLoading = lessonsLoading || teachingPlansLoading || holidaysLoading;
   const error = lessonError || teachingPlanError;
 
   async function handleAttendanceChange(lessonId, status) {
@@ -52,6 +56,38 @@ function DashboardPage() {
     }).catch(() => {});
   }, [currentMonth, fetchLessons, selectedTeachingPlanId]);
 
+  useEffect(() => {
+    let shouldIgnore = false;
+
+    async function loadPublicHolidays() {
+      setHolidaysLoading(true);
+      setHolidayError(null);
+
+      try {
+        const holidays = await fetchPublicHolidays(currentMonth.getFullYear());
+
+        if (!shouldIgnore) {
+          setPublicHolidays(holidays);
+        }
+      } catch (requestError) {
+        if (!shouldIgnore) {
+          setHolidayError(requestError.message);
+          setPublicHolidays([]);
+        }
+      } finally {
+        if (!shouldIgnore) {
+          setHolidaysLoading(false);
+        }
+      }
+    }
+
+    loadPublicHolidays();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [currentMonth]);
+
   return (
     <section className="grid gap-6">
       {isLoading && <LoadingOverlay label="Loading calendar..." />}
@@ -70,6 +106,12 @@ function DashboardPage() {
         </div>
       )}
 
+      {holidayError && (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-800">
+          {holidayError}
+        </div>
+      )}
+
       <CalendarControls
         currentMonth={currentMonth}
         teachingPlans={teachingPlans}
@@ -82,6 +124,7 @@ function DashboardPage() {
       <MonthCalendar
         currentMonth={currentMonth}
         currentUserId={user?.id}
+        holidays={publicHolidays}
         lessons={lessons}
         onAttendanceChange={handleAttendanceChange}
       />

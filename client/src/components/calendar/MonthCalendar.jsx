@@ -8,6 +8,7 @@ import {
   weekDays,
 } from '../../lib/calendar.js';
 import { downloadLessonIcs } from '../../lib/ics.js';
+import { groupHolidaysByDate } from '../../lib/publicHolidays.js';
 
 function attendanceButtonClass(status, targetStatus) {
   const isActive = status === targetStatus;
@@ -52,9 +53,10 @@ function mutedTextClass(status, canMarkAttendance) {
   return 'text-yellow-700';
 }
 
-function MonthCalendar({ currentMonth, currentUserId, lessons, onAttendanceChange }) {
+function MonthCalendar({ currentMonth, currentUserId, holidays = [], lessons, onAttendanceChange }) {
   const days = calendarDays(currentMonth);
   const lessonsByDate = groupLessonsByDate(lessons);
+  const holidaysByDate = groupHolidaysByDate(holidays);
   const todayKey = dateKey(new Date());
 
   return (
@@ -74,6 +76,7 @@ function MonthCalendar({ currentMonth, currentUserId, lessons, onAttendanceChang
         {days.map((day, index) => {
           const key = day ? dateKey(day) : `empty-${index}`;
           const dayKey = day ? dateKey(day) : null;
+          const dayHolidays = dayKey ? holidaysByDate[dayKey] ?? [] : [];
           const dayLessons = dayKey ? lessonsByDate[dayKey] ?? [] : [];
           const isToday = day && dateKey(day) === todayKey;
 
@@ -97,12 +100,35 @@ function MonthCalendar({ currentMonth, currentUserId, lessons, onAttendanceChang
                     >
                       {day.getDate()}
                     </span>
-                    {dayLessons.length > 0 && (
-                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                        {dayLessons.length}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {dayHolidays.length > 0 && (
+                        <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          Holiday
+                        </span>
+                      )}
+                      {dayLessons.length > 0 && (
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          {dayLessons.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {dayHolidays.length > 0 && (
+                    <div className="mb-2 grid gap-1">
+                      {dayHolidays.map((holiday) => (
+                        <div
+                          className="rounded-md border border-red-100 bg-red-50 px-2 py-1 text-xs"
+                          key={`${holiday.date}-${holiday.localName}`}
+                        >
+                          <p className="font-semibold text-red-800">{holiday.localName}</p>
+                          {holiday.name !== holiday.localName && (
+                            <p className="mt-0.5 text-red-600">{holiday.name}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="grid gap-2">
                     {dayLessons.map((lesson) => (
